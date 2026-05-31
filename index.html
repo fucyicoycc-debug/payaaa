@@ -55,7 +55,7 @@ const fmtTime=ts=>new Date(ts).toLocaleString("ar-LY",{year:"numeric",month:"2-d
 const newId=()=>"INV-"+Date.now().toString(36).toUpperCase();
 
 /* رمز المشرف — غيّره لرمز سري */
-const ADMIN_PIN = "0000";
+const ADMIN_PIN = "200481";
 const getUsers = () => sg("admin:users") || {};
 const saveUsers = u => ss("admin:users", u);
 
