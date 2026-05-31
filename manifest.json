@@ -1,0 +1,17 @@
+{
+  "name": "بيّاع — نقطة البيع",
+  "short_name": "بيّاع",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1a5c2a",
+  "theme_color": "#238636",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExNSIgZmlsbD0iIzFhNWMyYSIvPgogIDx0ZXh0IHg9IjI1NiIgeT0iMzQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjMyMCI+8J+PqjwvdGV4dD4KPC9zdmc+",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
