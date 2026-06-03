@@ -1010,7 +1010,7 @@ function ProductsTab({prods,saveProds,sets}){
         <div style={{marginBottom:16}}>
           <p className="lbl">الفئة</p>
           <select className="inp" value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
-            {["غذائي","ألبان","عناية","مشروبات","أخرى"].map(x=><option key={x} value={x}>{x}</option>)}
+            {["غذائي","ألبان","مواد تنظيف","مشروبات","أخرى"].map(x=><option key={x} value={x}>{x}</option>)}
           </select>
         </div>
         {err&&<p style={{color:"#f85149",fontSize:12,marginBottom:12}}>{err}</p>}
