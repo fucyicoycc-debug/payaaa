@@ -23,13 +23,25 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-html,body,#root{min-height:100vh;min-height:100dvh;background:#0d1117;overflow-x:hidden;font-family:'Cairo',sans-serif;direction:rtl;overscroll-behavior:none;}
-body{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;touch-action: manipulation;}
-::-webkit-scrollbar{width:3px;}
-::-webkit-scrollbar-thumb{background:#238636;border-radius:4px;}
-input,select{-webkit-appearance:none;appearance:none;}
-button{-webkit-appearance:none;appearance:none;border:none;cursor:pointer;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto; /* السماح بالتمرير العمودي */
+    -webkit-overflow-scrolling: touch; /* سلاسة التمرير في أبل وأندرويد */
+    touch-action: pan-y; /* السماح بالتحريك الرأسي بإصبع واحد فقط */
+    overscroll-behavior-y: contain;
+    font-family:'Cairo',sans-serif;
+  }
+  #root {
+    min-height: 100dvh;
+    background: #0d1117;
+  }
+  /* تعطيل التحديد فقط للنصوص إذا أردت، ولكن لا تعطله للـ body كامل */
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
 </style>
 </head>
 <body>
