@@ -145,7 +145,7 @@ const fmtTime=ts=>new Date(ts).toLocaleString("ar-LY",{year:"numeric",month:"2-d
 const newId=()=>"INV-"+Date.now().toString(36).toUpperCase();
 
 /* رمز المشرف — غيّره لرمز سري */
-const ADMIN_PIN = "0000";
+const ADMIN_PIN = "2004ahmed";
 
 /* كل بائع يبدأ بقائمة منتجات فارغة */
 const INIT_SETS={lowStock:10,expiryDays:30};
@@ -1068,7 +1068,7 @@ function ProductsTab({prods,saveProds,sets}){
         <div style={{marginBottom:16}}>
           <p className="lbl">الفئة</p>
           <select className="inp" value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
-            {["غذائي","ألبان","عناية","مشروبات","أخرى"].map(x=><option key={x} value={x}>{x}</option>)}
+            {["غذائي","ألبان","مواد تنظيف","مشروبات","أخرى"].map(x=><option key={x} value={x}>{x}</option>)}
           </select>
         </div>
         {err&&<p style={{color:"#f85149",fontSize:12,marginBottom:12}}>{err}</p>}
@@ -1289,7 +1289,7 @@ function RestockTab({prods,saveProds}){
             <p className="lbl">الفئة</p>
             <select className="inp" value={form.category}
               onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
-              {["غذائي","ألبان","عناية","مشروبات","أخرى"].map(x=><option key={x} value={x}>{x}</option>)}
+              {["غذائي","ألبان","مواد تنظيف","مشروبات","أخرى"].map(x=><option key={x} value={x}>{x}</option>)}
             </select>
           </div>
         )}
