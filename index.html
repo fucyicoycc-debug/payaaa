@@ -869,7 +869,7 @@ function LoginScreen({onLogin}){
         <div style={{textAlign:"center",marginBottom:24}}>
           <div style={{width:64,height:64,background:"linear-gradient(135deg,#1e307a,#3a56b8)",borderRadius:18,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 13px",boxShadow:"0 8px 22px rgba(30,48,122,0.35)"}}><img src={LOGO_URI} style={{width:40,height:"auto",filter:"brightness(0) invert(1)"}} alt="بيّاع"/></div>
           <h1 style={{color:"#fff",fontSize:26,fontWeight:900}}>مرحبًا بكم</h1>
-          <p style={{color:"#7d8590",fontSize:12,marginTop:3}}>نظام نقطة البيع الذكي</p>
+          <p style={{color:"#7d8590",fontSize:12,marginTop:3}}>في نظام البيع الذكي </p>
         </div>
 
         {step==="info"&&<>
@@ -1091,7 +1091,7 @@ function POSTab({prods,saveProds,addSale}){
       {/* السلة */}
       <div className="card" style={{marginBottom:11}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-          <p style={{color:"#e6edf3",fontWeight:700,fontSize:14}}>🛍️ السلة</p>
+          <p style={{color:"#e6edf3",fontWeight:700,fontSize:14}}>🛒 سلة المشتريات</p>
           {cart.length>0&&<span className="tag tg">{cart.reduce((s,i)=>s+i.qty,0)} منتج</span>}
         </div>
         {cart.length===0
@@ -2095,7 +2095,7 @@ function ReportsTab({sales,prods,sets,user}){
       </div>
 
       <div style={{background:"rgba(30,48,122,0.06)",border:"1px solid rgba(30,48,122,0.15)",borderRadius:10,padding:"10px 12px",marginTop:12,textAlign:"center"}}>
-        <p style={{color:"#7d8590",fontSize:11}}>💡 اضغط طباعة ← احفظ كـ PDF على هاتفك</p>
+        <p style={{color:"#7d8590",fontSize:11}}>🔦 اضغط طباعة ← احفظ كـ PDF على هاتفك</p>
       </div>
     </div>
   );
@@ -2410,7 +2410,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 <script>
 if("serviceWorker" in navigator){
   const sw=`
-const V="bayyaa-v4";
+const V="bayyaa-v15";
 const CACHE=[
   "./",
   "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap",
