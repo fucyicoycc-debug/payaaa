@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#1e307a"/>
+<title>لوحة التحكم الرئيسية — بيّاع</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:#0d1117;color:#e6edf3;font-family:'Cairo',sans-serif;}
+  input{font-family:'Cairo',sans-serif;}
+  .sc{max-width:520px;margin:0 auto;padding:16px 16px 40px;min-height:100vh;}
+  .card{background:rgba(22,27,34,0.88);border:1px solid rgba(48,54,61,0.8);border-radius:14px;padding:16px;margin-bottom:14px;}
+  .inp{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:10px;
+    padding:11px 14px;color:#e6edf3;font-size:14px;outline:none;}
+  .inp:focus{border-color:rgba(58,86,184,0.6);}
+  .btn{border:none;border-radius:11px;padding:12px 16px;font-weight:700;cursor:pointer;font-size:14px;width:100%;}
+  .btn-p{background:linear-gradient(135deg,#1e307a,#3a56b8);color:#fff;}
+  .btn-g{background:linear-gradient(135deg,#1e7a3a,#3ab86a);color:#fff;}
+  .btn-r{background:linear-gradient(135deg,#7a1e1e,#b83a3a);color:#fff;}
+  .btn-s{background:rgba(255,255,255,0.06);color:#7d8590;border:1px solid rgba(255,255,255,0.09);}
+  .btn-sm{padding:7px 12px;font-size:12px;width:auto;}
+  .tag{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+  .lbl{color:#7d8590;font-size:12px;margin-bottom:5px;display:block;font-weight:600;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  a{color:inherit;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useMemo}=React;
+
+const FBCFG={apiKey:"AIzaSyBrq2HDztoaj76AwijYDLwKZNhl8nJAEDg",authDomain:"payaa-89766.firebaseapp.com",projectId:"payaa-89766",storageBucket:"payaa-89766.firebasestorage.app",messagingSenderId:"408521777175",appId:"1:408521777175:web:0f2546dff6c09c99503c52"};
+
+// تهيئة فايربيز بشكل آمن ومتأخر (lazy): لا تُنفَّذ فورًا عند تحميل الصفحة، بل عند
+// أول استخدام فعلي. لو تأخر تحميل سكريبت فايربيز من الشبكة (اتصال بطيء أو مؤقت)،
+// كان الكود القديم يرمي خطأ فورًا ويوقف تنفيذ باقي الصفحة بالكامل قبل ما تُرسَم
+// الواجهة إطلاقًا — فتظهر شاشة سوداء تمامًا. الآن الواجهة تُرسَم فورًا دائمًا،
+// وأي عملية تحتاج فايربيز تنتظره بأمان مع رسالة واضحة لو تعذّر الاتصال فعلاً.
+let _db=null;
+function getDb(){
+  if(_db)return _db;
+  if(typeof firebase==="undefined")return null;
+  try{
+    if(!firebase.apps.length)firebase.initializeApp(FBCFG);
+    _db=firebase.firestore();
+    return _db;
+  }catch(e){console.warn("Firebase init:",e);return null;}
+}
+async function waitForDb(maxMs=8000){
+  const t0=Date.now();
+  return new Promise(resolve=>{
+    function check(){
+      const d=getDb();
+      if(d){resolve(d);return;}
+      if(Date.now()-t0>maxMs){resolve(null);return;}
+      setTimeout(check,200);
+    }
+    check();
+  });
+}
+
+// رمز الدخول للوحة التحكم الرئيسية (مالك المنتج فقط) — مخزَّن كتجزئة SHA-256، وليس كنص صريح
+// الرمز الافتراضي الحالي: MASTER-2026 — غيّره لاحقًا لو رغبت
+const MASTER_PIN_HASH="8cc1b218ec5fee444e3b4a05aca3a3e3e1c394b0192432e8aff7881f91ee3303";
+async function sha256Hex(str){
+  const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+const daysUntil=d=>Math.ceil((new Date(d)-new Date())/86400000);
+const fmtDate=d=>{try{return new Date(d).toLocaleDateString("ar-LY",{year:"numeric",month:"short",day:"numeric"});}catch{return d;}};
+
+function Login({onOk}){
+  const[pin,setPin]=useState("");
+  const[err,setErr]=useState("");
+  const[busy,setBusy]=useState(false);
+  const[attempts,setAttempts]=useState(0);
+  const[lockUntil,setLockUntil]=useState(0);
+
+  const go=async()=>{
+    if(Date.now()<lockUntil){
+      setErr(`محاولات كثيرة، حاول بعد ${Math.ceil((lockUntil-Date.now())/1000)} ثانية`);return;
+    }
+    setBusy(true);
+    const h=await sha256Hex(pin);
+    setBusy(false);
+    if(h===MASTER_PIN_HASH){onOk();return;}
+    const n=attempts+1;setAttempts(n);
+    if(n>=5){setLockUntil(Date.now()+30000);setErr("محاولات كثيرة، حاول بعد 30 ثانية");}
+    else setErr("رمز غير صحيح");
+    setPin("");
+  };
+
+  return(
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div className="card" style={{width:"100%",maxWidth:380}}>
+        <p style={{textAlign:"center",fontWeight:900,fontSize:20,marginBottom:4}}>بيّاع</p>
+        <p style={{textAlign:"center",color:"#7d8590",fontSize:13,marginBottom:20}}>لوحة التحكم الرئيسية</p>
+        <label className="lbl">رمز الدخول</label>
+        <input className="inp" type="password" value={pin} placeholder="••••••••"
+          onChange={e=>setPin(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&go()} style={{marginBottom:12}}/>
+        {err&&<p style={{color:"#f85149",fontSize:12,marginBottom:10,textAlign:"center"}}>{err}</p>}
+        <button className="btn btn-p" onClick={go} disabled={busy}>{busy?"...":"دخول"}</button>
+      </div>
+    </div>
+  );
+}
+
+function AdminForm({initial,onSave,onCancel}){
+  const[form,setForm]=useState(initial||{name:"",phone:"",pin4:"",sellerLimit:5,months:1});
+  const[err,setErr]=useState("");
+  const isEdit=!!initial;
+
+  const submit=async()=>{
+    if(!form.name.trim()||!form.phone.trim())return setErr("يرجى تعبئة الاسم ورقم الهاتف");
+    if(!isEdit&&form.pin4.length!==4)return setErr("رمز الدخول يجب أن يكون 4 أرقام");
+    if(isEdit&&form.pin4&&form.pin4.length!==4)return setErr("رمز الدخول يجب أن يكون 4 أرقام أو اتركه فارغًا");
+    onSave(form);
+  };
+
+  return(
+    <div className="card">
+      <p style={{fontWeight:700,marginBottom:12}}>{isEdit?"تعديل حساب مشرف":"➕ إضافة حساب مشرف جديد"}</p>
+      <label className="lbl">اسم صاحب المحل</label>
+      <input className="inp" style={{marginBottom:10}} value={form.name}
+        onChange={e=>setForm({...form,name:e.target.value})} placeholder="مثال: أحمد الطاهر"/>
+      <label className="lbl">رقم الهاتف</label>
+      <input className="inp" style={{marginBottom:10}} value={form.phone} disabled={isEdit}
+        onChange={e=>setForm({...form,phone:e.target.value.replace(/\D/g,"")})} placeholder="09XXXXXXXX"/>
+      <label className="lbl">{isEdit?"رمز دخول جديد (اتركه فارغًا للإبقاء عليه)":"رمز الدخول (4 أرقام)"}</label>
+      <input className="inp" style={{marginBottom:10}} value={form.pin4} type="number"
+        onChange={e=>setForm({...form,pin4:e.target.value.slice(0,4)})} placeholder="····"/>
+      <div className="grid2" style={{marginBottom:10}}>
+        <div>
+          <label className="lbl">الحد الأقصى لحسابات البائعين</label>
+          <input className="inp" type="number" min="0" value={form.sellerLimit}
+            onChange={e=>setForm({...form,sellerLimit:e.target.value})}/>
+        </div>
+        {!isEdit&&(
+          <div>
+            <label className="lbl">مدة الاشتراك (أشهر)</label>
+            <input className="inp" type="number" min="1" value={form.months}
+              onChange={e=>setForm({...form,months:e.target.value})}/>
+          </div>
+        )}
+      </div>
+      {err&&<p style={{color:"#f85149",fontSize:12,marginBottom:10}}>{err}</p>}
+      <div style={{display:"flex",gap:8}}>
+        <button className="btn btn-p" onClick={submit}>{isEdit?"حفظ التعديل":"إضافة"}</button>
+        <button className="btn btn-s" onClick={onCancel}>إلغاء</button>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard(){
+  const[admins,setAdmins]=useState({});
+  const[loading,setLoading]=useState(true);
+  const[view,setView]=useState("list"); // list | add | edit
+  const[editPhone,setEditPhone]=useState(null);
+  const[confirmDel,setConfirmDel]=useState(null);
+  const[msg,setMsg]=useState("");
+  const[err,setErr]=useState("");
+
+  const load=async()=>{
+    setLoading(true);setErr("");
+    const db=await waitForDb();
+    if(!db){setErr("تعذّر الاتصال بقاعدة البيانات — تحقق من الإنترنت وأعد المحاولة");setLoading(false);return;}
+    try{
+      const snap=await db.collection("shopAdmins").get();
+      const u={};
+      snap.forEach(d=>{u[d.id]=d.data();});
+      setAdmins(u);
+    }catch(e){console.warn(e);setErr("حدث خطأ أثناء التحميل");}
+    setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
+
+  const entries=useMemo(()=>Object.entries(admins).sort((a,b)=>(b[1].createdAt||"").localeCompare(a[1].createdAt||"")),[admins]);
+  const activeCount=entries.filter(([,a])=>a.subscribed&&daysUntil(a.subExpiry)>=0).length;
+
+  const saveNew=async form=>{
+    const db=await waitForDb();
+    if(!db)return alert("تعذّر الاتصال بقاعدة البيانات — تحقق من الإنترنت");
+    const phone=form.phone.trim();
+    if(admins[phone])return alert("هذا الرقم مسجَّل مسبقًا");
+    const expiry=new Date();expiry.setMonth(expiry.getMonth()+parseInt(form.months||1));
+    const pinHash=await sha256Hex(form.pin4);
+    const data={
+      name:form.name.trim(),phone,pinHash,
+      sellerLimit:parseInt(form.sellerLimit)||0,
+      subscribed:true,
+      subExpiry:expiry.toISOString().split("T")[0],
+      createdAt:new Date().toISOString(),
+    };
+    await db.collection("shopAdmins").doc(phone).set(data);
+    setAdmins({...admins,[phone]:data});
+    setView("list");setMsg("✅ تم إضافة الحساب");setTimeout(()=>setMsg(""),2000);
+  };
+
+  const saveEdit=async form=>{
+    const db=await waitForDb();
+    if(!db)return alert("تعذّر الاتصال بقاعدة البيانات — تحقق من الإنترنت");
+    const phone=editPhone;
+    const prev=admins[phone];
+    const data={...prev,name:form.name.trim(),sellerLimit:parseInt(form.sellerLimit)||0};
+    if(form.pin4&&form.pin4.length===4)data.pinHash=await sha256Hex(form.pin4);
+    await db.collection("shopAdmins").doc(phone).set(data);
+    setAdmins({...admins,[phone]:data});
+    setView("list");setEditPhone(null);setMsg("✅ تم حفظ التعديل");setTimeout(()=>setMsg(""),2000);
+  };
+
+  const toggleSub=async phone=>{
+    const db=await waitForDb();
+    if(!db)return alert("تعذّر الاتصال بقاعدة البيانات — تحقق من الإنترنت");
+    const a=admins[phone];
+    const data={...a,subscribed:!a.subscribed};
+    await db.collection("shopAdmins").doc(phone).set(data);
+    setAdmins({...admins,[phone]:data});
+  };
+
+  const renew=async(phone,months)=>{
+    const db=await waitForDb();
+    if(!db)return alert("تعذّر الاتصال بقاعدة البيانات — تحقق من الإنترنت");
+    const a=admins[phone];
+    const base=daysUntil(a.subExpiry)>0?new Date(a.subExpiry):new Date();
+    base.setMonth(base.getMonth()+months);
+    const data={...a,subscribed:true,subExpiry:base.toISOString().split("T")[0]};
+    await db.collection("shopAdmins").doc(phone).set(data);
+    setAdmins({...admins,[phone]:data});
+  };
+
+  const del=async phone=>{
+    const db=await waitForDb();
+    if(!db)return alert("تعذّر الاتصال بقاعدة البيانات — تحقق من الإنترنت");
+    await db.collection("shopAdmins").doc(phone).delete();
+    const u={...admins};delete u[phone];setAdmins(u);setConfirmDel(null);
+  };
+
+  if(view==="add")return(
+    <div className="sc">
+      <AdminForm onSave={saveNew} onCancel={()=>setView("list")}/>
+    </div>
+  );
+  if(view==="edit")return(
+    <div className="sc">
+      <AdminForm initial={{name:admins[editPhone].name,phone:editPhone,pin4:"",
+        sellerLimit:admins[editPhone].sellerLimit}}
+        onSave={saveEdit} onCancel={()=>{setView("list");setEditPhone(null);}}/>
+    </div>
+  );
+
+  return(
+    <div className="sc">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div>
+          <p style={{fontWeight:900,fontSize:20}}>لوحة التحكم الرئيسية</p>
+          <p style={{color:"#7d8590",fontSize:12}}>بيّاع — إدارة حسابات المشرفين (أصحاب المحلات)</p>
+        </div>
+      </div>
+
+      <div className="grid2" style={{marginBottom:14}}>
+        <div className="card" style={{textAlign:"center",marginBottom:0}}>
+          <p style={{fontSize:26,fontWeight:900,color:"#5b7fe0"}}>{entries.length}</p>
+          <p style={{color:"#7d8590",fontSize:12}}>إجمالي حسابات المشرفين</p>
+        </div>
+        <div className="card" style={{textAlign:"center",marginBottom:0}}>
+          <p style={{fontSize:26,fontWeight:900,color:"#3fb950"}}>{activeCount}</p>
+          <p style={{color:"#7d8590",fontSize:12}}>نشط حاليًا</p>
+        </div>
+      </div>
+
+      {msg&&<p style={{color:"#3fb950",fontSize:13,fontWeight:700,textAlign:"center",marginBottom:10}}>{msg}</p>}
+      {err&&(
+        <div className="card" style={{textAlign:"center"}}>
+          <p style={{color:"#f85149",fontSize:13,marginBottom:10}}>⚠️ {err}</p>
+          <button className="btn btn-p" onClick={load}>إعادة المحاولة</button>
+        </div>
+      )}
+
+      <button className="btn btn-p" style={{marginBottom:16}} onClick={()=>setView("add")}>➕ إضافة حساب مشرف جديد</button>
+
+      {loading?<p style={{textAlign:"center",color:"#7d8590"}}>جارِ التحميل...</p>:
+       entries.length===0?<p style={{textAlign:"center",color:"#7d8590"}}>لا يوجد أي حساب مشرف بعد</p>:
+       entries.map(([phone,a])=>{
+        const days=daysUntil(a.subExpiry);
+        const expired=days<0;
+        const status=!a.subscribed?{l:"موقوف",c:"#f85149",bg:"rgba(218,54,51,0.13)"}
+          :expired?{l:"منتهي",c:"#f0883e",bg:"rgba(240,136,62,0.13)"}
+          :{l:"نشط",c:"#3fb950",bg:"rgba(63,185,80,0.13)"};
+        return(
+          <div key={phone} className="card">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+              <div>
+                <p style={{fontWeight:700,fontSize:15}}>{a.name}</p>
+                <p style={{color:"#7d8590",fontSize:12}}>📱 {phone}</p>
+              </div>
+              <span className="tag" style={{color:status.c,background:status.bg}}>{status.l}</span>
+            </div>
+            <div className="grid2" style={{marginBottom:10}}>
+              <p style={{color:"#7d8590",fontSize:12}}>الحد الأقصى للبائعين: <b style={{color:"#e6edf3"}}>{a.sellerLimit}</b></p>
+              <p style={{color:"#7d8590",fontSize:12}}>الانتهاء: <b style={{color:expired?"#f85149":"#e6edf3"}}>{fmtDate(a.subExpiry)}</b></p>
+            </div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <button className="btn btn-s btn-sm" onClick={()=>{setEditPhone(phone);setView("edit");}}>✏️ تعديل</button>
+              <button className="btn btn-g btn-sm" onClick={()=>renew(phone,1)}>+ شهر</button>
+              <button className={`btn btn-sm ${a.subscribed?"btn-r":"btn-g"}`} onClick={()=>toggleSub(phone)}>
+                {a.subscribed?"⏸ إيقاف":"▶ تفعيل"}
+              </button>
+              <button className="btn btn-r btn-sm" onClick={()=>setConfirmDel(phone)}>🗑 حذف</button>
+            </div>
+            {confirmDel===phone&&(
+              <div style={{marginTop:10,background:"rgba(218,54,51,0.08)",border:"1px solid rgba(218,54,51,0.3)",
+                borderRadius:10,padding:10}}>
+                <p style={{fontSize:12,marginBottom:8}}>حذف هذا الحساب نهائيًا؟</p>
+                <div style={{display:"flex",gap:8}}>
+                  <button className="btn btn-r btn-sm" onClick={()=>del(phone)}>نعم، احذف</button>
+                  <button className="btn btn-s btn-sm" onClick={()=>setConfirmDel(null)}>تراجع</button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function App(){
+  const[ok,setOk]=useState(false);
+  return ok?<Dashboard/>:<Login onOk={()=>setOk(true)}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
